@@ -2,37 +2,48 @@ import { pinata } from "../config/pinata.js";
 import Hackathon from "../models/Hackathon.js";
 import Project from "../models/Project.js";
 import axios from "axios";
+import Teams from "../models/Teams.js";
 
 export const createProject = async (req, res) => {
-  try {
-    console.log(req.body);
-    const { title, description, github, team } = req.body;
+ try {
+    const { title, description, github, cid, teamId, hackathonId } = req.body;
 
-    const response = await pinata.post("pinning/pinJSONToIPFS", {
-      title,
-      description,
-      github,
-    });
+    const team = await Teams.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
 
-    const { IpfsHash } = response.data;
 
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      return res.status(404).json({ message: "Hackathon not found" });
+    }
+
+
+    if (team.project) {
+      return res.status(400).json({ message: "This team already submitted a project" });
+    }
+
+    // Create project
     const project = new Project({
       title,
       description,
       github,
-      team,
-      cid: IpfsHash,
+      cid,
+      team: team._id,
+      hackathon: hackathon._id
     });
 
     await project.save();
 
-    res.status(201).json({
-      message: "✅ Project created successfully",
-      project,
-    });
-  } catch (err) {
-    console.error("⚠️ Error creating project:", err?.response?.data || err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    // Link project to team
+    team.project = project._id;
+    await team.save();
+
+    res.status(201).json(project);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error creating project" });
   }
 };
 
@@ -60,76 +71,49 @@ export const getProjectByCID = async (req, res) => {
 export const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, github } = req.body;
+    const { title, description, github, cid } = req.body;
 
-    const project = await Project.findById(id);
+    const project = await Project.findByIdAndUpdate(
+      id,
+      { title, description, github, cid },
+      { new: true }
+    );
+
     if (!project) {
-      return res.status(404).json({ error: "Project not found" });
+      return res.status(404).json({ message: "Project not found" });
     }
 
-    // Unpin old CID if exists
-    if (project.cid) {
-      try {
-        await pinata.delete(`/pinning/unpin/${project.cid}`);
-      } catch (err) {
-        console.warn("⚠️ Failed to unpin old CID:", err?.response?.data || err.message);
-      }
-    }
-
-    // Upload new data to IPFS
-    const response = await pinata.post("pinning/pinJSONToIPFS", {
-      title,
-      description,
-      github,
-    });
-
-    const { IpfsHash } = response.data;
-
-    project.title = title || project.title;
-    project.description = description || project.description;
-    project.github = github || project.github;
-    project.cid = IpfsHash;
-    project.updatedAt = new Date();
-
-    await project.save();
-
-    res.json({
-      message: "✅ Project updated successfully",
-      project,
-    });
-  } catch (err) {
-    console.error("⚠️ Error updating project:", err?.response?.data || err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(200).json(project);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error updating project" });
   }
 };
+
 
 export const deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Find project
     const project = await Project.findById(id);
     if (!project) {
-      return res.status(404).json({ error: "Project not found" });
+      return res.status(404).json({ message: "Project not found" });
     }
 
-    // Unpin CID
-    if (project.cid) {
-      try {
-        await pinata.delete(`/pinning/unpin/${project.cid}`);
-        console.log(`🗑️ Unpinned CID ${project.cid} from Pinata`);
-      } catch (err) {
-        console.warn("⚠️ Failed to unpin from Pinata:", err?.response?.data || err.message);
-      }
-    }
+    // Unlink project from team
+    await Team.findByIdAndUpdate(project.team, { $unset: { project: "" } });
 
+    // Delete project
     await Project.findByIdAndDelete(id);
 
-    res.json({ message: "✅ Project deleted successfully" });
-  } catch (err) {
-    console.error("⚠️ Error deleting project:", err?.response?.data || err.message);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(200).json({ message: "Project deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting project" });
   }
 };
+
 
 
 export const voteProject = async (req, res) => {

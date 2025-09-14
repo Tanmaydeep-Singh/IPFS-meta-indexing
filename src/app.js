@@ -4,6 +4,7 @@ import hackathonRoutes from "./routes/hackathonRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import userRoutes from "./routes/userRoutes.js"
 import teamRoutes from "./routes/teamRoutes.js"
+import masterRoutes from "./routes/masterRoutes.js";
 
 dotenv.config();
 
@@ -14,5 +15,7 @@ app.use("/hackathons", hackathonRoutes);
 app.use("/projects", projectRoutes);
 app.use("/user", userRoutes);
 app.use("/team", teamRoutes)
+
+app.use("/master", masterRoutes);
 
 export default app;

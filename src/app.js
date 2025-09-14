@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import hackathonRoutes from "./routes/hackathonRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import userRoutes from "./routes/userRoutes.js"
-
+import teamRoutes from "./routes/teamRoutes.js"
 
 dotenv.config();
 
@@ -13,5 +13,6 @@ app.use(express.json());
 app.use("/hackathons", hackathonRoutes);
 app.use("/projects", projectRoutes);
 app.use("/user", userRoutes);
+app.use("/team", teamRoutes)
 
 export default app;

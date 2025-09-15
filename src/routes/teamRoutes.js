@@ -1,18 +1,9 @@
 import express from "express";
-import {
-  createTeam,
-  joinTeam,
-  leaveTeam,
-  getHackathonTeams,
-  getTeamDetails,
-} from "../controllers/teamController.js";
+import { createTeams, getTeamByCID } from "../controller/teamsController.js";
 
 const router = express.Router();
 
-router.post("/", createTeam);
-router.post("/join", joinTeam);
-router.post("/leave", leaveTeam);
-router.get("/hackathon/:hackathonId", getHackathonTeams);
-router.get("/:teamId", getTeamDetails);
+router.post("/", createTeams ); // ID
+router.get("/:cid", getTeamByCID );
 
 export default router;

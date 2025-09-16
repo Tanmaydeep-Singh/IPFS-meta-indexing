@@ -1,21 +1,59 @@
 import { uploadToIPFS, getFromIPFS } from "../utils/ipfs.js";
+import { updateMasterWithHackathon } from "./hackathonController.js";
 
 export const createProject = async (req, res) => {
   try {
+    const { hackathonCID } = req.params; 
     const newProject = req.body;
-    
 
     const projectCID = await uploadToIPFS(newProject);
 
+    
+
+    const { name, desc } = newProject;
+    const liteProject = { name, desc, cid: projectCID };
+
+    
+    const hackathon = await getFromIPFS(hackathonCID);
+
+
+
+    let projects = [];
+    if (hackathon.projectCID) {
+      projects = await getFromIPFS(hackathon.projectCID);
+    }
+
+    
+    projects.push(liteProject);
+
+
+    hackathon.projectCID = await uploadToIPFS(projects);
+    const newHackathonCID = await uploadToIPFS(hackathon);
+
+
+
+    const masterBody = {
+      hackathonCID: newHackathonCID,
+      title: hackathon.title,
+      desc: hackathon.desc,
+      startDate: hackathon.startDate,
+      imageCID: hackathon.imageCID, // FIXED
+    };
+
+    await updateMasterWithHackathon({ body: masterBody }, res); 
+
     res.status(201).json({
       message: "✅ Project created",
-      cid: projectCID,
+      projectCID,
+      newHackathonCID,
     });
+
   } catch (err) {
     console.error("❌ Error creating project:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
+
 
 export const getProjectByCID = async (req, res) => {
   try {

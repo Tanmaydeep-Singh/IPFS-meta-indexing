@@ -3,7 +3,7 @@ import { createProject, getProjectByCID } from "../controller/projectsController
 
 const router = express.Router();
 
-router.post("/", createProject); // ID
+router.post("/:hackathonCID", createProject); // ID
 router.get("/:cid", getProjectByCID);
 
 export default router;

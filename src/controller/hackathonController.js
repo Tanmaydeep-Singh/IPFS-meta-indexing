@@ -77,3 +77,40 @@ export const getHackathonByCID = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch data from IPFS" });
   }
 };
+
+
+export const updateMasterWithHackathon = async (body) => {
+  try {
+    const { hackathonCID, title, desc, startDate, imageCID } = body;
+
+    let master = await Master.findOne({ key: "hackathons" });
+    let hackathons = [];
+
+    if (master) {
+      hackathons = await getFromIPFS(master.cid);
+    }
+
+    const liteHackathon = {
+      title,
+      desc,
+      startDate,
+      imageCID,
+      cid: hackathonCID
+    };
+
+    hackathons.push(liteHackathon);
+
+
+    const newMasterCID = await uploadToIPFS(hackathons);
+
+    if (master) {
+      master.cid = newMasterCID;
+      await master.save();
+    } else {
+      master = await Master.create({ key: "hackathons", cid: newMasterCID });
+    }
+
+   
+  } catch (err) {
+  }
+};

@@ -38,6 +38,8 @@ export const createProject = async (req, res) => {
             desc: hackathon.desc,
             startDate: hackathon.startDate,
             imageCID: hackathon.imageCID,
+            votesCount: hackathon.votesCount,
+            votesCID: hackathon.votesCID
         };
 
         await updateMasterWithHackathon(masterBody);

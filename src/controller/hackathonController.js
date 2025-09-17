@@ -77,9 +77,66 @@ export const getHackathonByCID = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch data from IPFS" });
   }
 };
+
+export const addVotes = async (req, res) => {
+  try {
+    const { cid } = req.params; // hackathon/project CID
+    const { userCID } = req.body; // voter user CID
+
+    if (!userCID) {
+      return res.status(400).json({ success: false, error: "userCID is required" });
+    }
+
+    // Fetch current data from IPFS
+    const response = await axios.get(`https://gateway.pinata.cloud/ipfs/${cid}`);
+    let hackathon = response.data;
+
+    // Ensure vote structure exists
+    if (!hackathon.votesCount) hackathon.votesCount = 0;
+    if (!Array.isArray(hackathon.votesCID)) hackathon.votesCID = [];
+
+    // Check if user already voted
+    if (hackathon.votesCID.includes(userCID)) {
+      return res.status(400).json({ success: false, error: "User already voted" });
+    }
+
+    // Update votes
+    hackathon.votesCount += 1;
+    hackathon.votesCID.push(userCID);
+
+    // Upload updated object back to IPFS
+    const newCID = await uploadToIPFS(hackathon);
+
+  const masterBody = {
+            oldCID: cid,
+            newCID: newCID,
+            title: hackathon.title,
+            desc: hackathon.desc,
+            startDate: hackathon.startDate,
+            imageCID: hackathon.imageCID,
+            votesCount: hackathon.votesCount,
+            votesCID: hackathon.votesCID
+        };
+
+        await updateMasterWithHackathon(masterBody);
+
+    res.status(200).json({
+      success: true,
+      oldCID: cid,
+      newCID,
+      votesCount: hackathon.votesCount,
+      votesCID: hackathon.votesCID
+    });
+  } catch (err) {
+    console.error("❌ Error adding vote:", err.message);
+    res.status(500).json({ success: false, error: "Failed to add vote" });
+  }
+};
+
+
 export const updateMasterWithHackathon = async (body) => {
   try {
-    const { oldCID, newCID, title, desc, startDate, imageCID } = body;
+    const { oldCID, newCID, title, desc, startDate, imageCID , votesCID, votesCount} = body;
 
     console.log(oldCID, newCID);
 

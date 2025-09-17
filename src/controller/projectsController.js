@@ -16,8 +16,6 @@ export const createProject = async (req, res) => {
     
     const hackathon = await getFromIPFS(hackathonCID);
 
-
-
     let projects = [];
     if (hackathon.projectCID) {
       projects = await getFromIPFS(hackathon.projectCID);

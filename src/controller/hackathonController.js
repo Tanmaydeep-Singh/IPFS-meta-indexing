@@ -78,28 +78,33 @@ export const getHackathonByCID = async (req, res) => {
   }
 };
 
-
 export const updateMasterWithHackathon = async (body) => {
   try {
-    const { hackathonCID, title, desc, startDate, imageCID } = body;
+    const { hackathonCID, title, desc, startDate, imageCID } = body.body;
+
+    console.log("body", body);
+
+    if (!hackathonCID) {
+      throw new Error("hackathonCID is missing. Make sure to upload hackathon to IPFS first.");
+    }
 
     let master = await Master.findOne({ key: "hackathons" });
     let hackathons = [];
 
     if (master) {
       hackathons = await getFromIPFS(master.cid);
+      if (!Array.isArray(hackathons)) hackathons = []; 
     }
 
     const liteHackathon = {
-      title,
-      desc,
-      startDate,
-      imageCID,
+      title: title || "",
+      desc: desc || "",
+      startDate: startDate || "",
+      imageCID: imageCID || "",
       cid: hackathonCID
     };
 
     hackathons.push(liteHackathon);
-
 
     const newMasterCID = await uploadToIPFS(hackathons);
 
@@ -110,7 +115,10 @@ export const updateMasterWithHackathon = async (body) => {
       master = await Master.create({ key: "hackathons", cid: newMasterCID });
     }
 
-   
+    return newMasterCID; // useful if caller needs it
   } catch (err) {
+    console.error("Error updating master with hackathon:", err);
+    throw err;
   }
 };
+

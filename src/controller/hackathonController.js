@@ -77,48 +77,51 @@ export const getHackathonByCID = async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch data from IPFS" });
   }
 };
-
 export const updateMasterWithHackathon = async (body) => {
   try {
-    const { hackathonCID, title, desc, startDate, imageCID } = body.body;
+    const { oldCID, newCID, title, desc, startDate, imageCID } = body;
 
-    console.log("body", body);
-
-    if (!hackathonCID) {
-      throw new Error("hackathonCID is missing. Make sure to upload hackathon to IPFS first.");
-    }
+    console.log(oldCID, newCID);
 
     let master = await Master.findOne({ key: "hackathons" });
-    let hackathons = [];
-
-    if (master) {
-      hackathons = await getFromIPFS(master.cid);
-      if (!Array.isArray(hackathons)) hackathons = []; 
+    if (!master) {
+      throw new Error("No master record found for hackathons");
     }
 
-    const liteHackathon = {
-      title: title || "",
-      desc: desc || "",
-      startDate: startDate || "",
-      imageCID: imageCID || "",
-      cid: hackathonCID
-    };
+    let hackathons = await getFromIPFS(master.cid);
+    if (!Array.isArray(hackathons)) hackathons = [];
 
-    hackathons.push(liteHackathon);
+    const idx = hackathons.findIndex(h => h.cid === oldCID);
+
+    if (idx !== -1) {
+      hackathons[idx] = {
+        ...hackathons[idx],
+        title: title || hackathons[idx].title,
+        desc: desc || hackathons[idx].desc,
+        startDate: startDate || hackathons[idx].startDate,
+        imageCID: imageCID || hackathons[idx].imageCID,
+        cid: newCID 
+      };
+    } else {
+      hackathons.push({
+        title: title || "",
+        desc: desc || "",
+        startDate: startDate || "",
+        imageCID: imageCID || "",
+        cid: newCID
+      });
+    }
 
     const newMasterCID = await uploadToIPFS(hackathons);
 
-    if (master) {
-      master.cid = newMasterCID;
-      await master.save();
-    } else {
-      master = await Master.create({ key: "hackathons", cid: newMasterCID });
-    }
+    master.cid = newMasterCID;
+    await master.save();
 
-    return newMasterCID; // useful if caller needs it
+    return newMasterCID;
   } catch (err) {
     console.error("Error updating master with hackathon:", err);
     throw err;
   }
 };
+
 

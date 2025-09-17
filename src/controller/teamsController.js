@@ -28,14 +28,15 @@ export const createTeams = async (req, res) => {
 
 
         const masterBody = {
-            hackathonCID: newHackathonCID,
+            oldCID:hackathonCID,
+            newCID: newHackathonCID,
             title: hackathon.title,
             desc: hackathon.desc,
             startDate: hackathon.startDate,
-            imageCID: hackathon.imageCID, // FIXED
+            imageCID: hackathon.imageCID,
         };
 
-        await updateMasterWithHackathon({ body: masterBody }, res);
+        await updateMasterWithHackathon(masterBody);
 
 
         res.status(201).json({

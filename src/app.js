@@ -1,5 +1,6 @@
 import express from "express";
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
+dotenv.config({ quiet: true });
 import hackathonRoutes from "./routes/hackathonRoutes.js";
 import projectsRoutes from "./routes/projectsRoutes.js";
 import teamsRoutes from "./routes/teamRoutes.js"
